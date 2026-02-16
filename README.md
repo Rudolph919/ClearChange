@@ -114,6 +114,15 @@ This structure prioritises clarity and correctness over abstraction.
 
 ---
 
+## Testing
+
+- **Unit & Feature tests**: `php artisan test` or `vendor/bin/pest`
+- **Browser tests**: Requires Playwright. First run `npm install playwright@latest --legacy-peer-deps` and `npx playwright install`, then `vendor/bin/pest tests/Browser`
+- **Profanity check**: `vendor/bin/pest --profanity`
+- **Mutation testing**: `vendor/bin/pest --mutate`
+
+---
+
 ## Docker / Podman
 
 See [README-docker.md](README-docker.md) for how to run the stack with Podman or Docker.
