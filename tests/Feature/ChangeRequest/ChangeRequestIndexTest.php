@@ -15,24 +15,26 @@ test('authenticated user can view change requests index', function () {
     );
 });
 
-test('index displays only users draft change requests', function () {
+test('index displays only users change requests (drafts, submitted, approved)', function () {
     $user = User::factory()->create();
     $ownDraft = ChangeRequest::factory()->create(['user_id' => $user->id]);
-    $otherUser = User::factory()->create();
-    ChangeRequest::factory()->create(['user_id' => $otherUser->id]);
-    ChangeRequest::factory()->create([
+    $ownSubmitted = ChangeRequest::factory()->create([
         'user_id' => $user->id,
         'status' => ChangeRequest::STATUS_SUBMITTED,
     ]);
+    $otherUser = User::factory()->create();
+    ChangeRequest::factory()->create(['user_id' => $otherUser->id]);
 
     $response = $this->actingAs($user)->get(route('change-requests.index'));
 
     $response->assertStatus(200);
     $response->assertInertia(fn ($page) => $page
         ->component('ChangeRequest/Index')
-        ->has('changeRequests', 1)
-        ->where('changeRequests.0.id', $ownDraft->id)
+        ->has('changeRequests', 2)
     );
+    $ids = collect($response->inertiaProps('changeRequests'))->pluck('id')->toArray();
+    expect($ids)->toContain($ownDraft->id);
+    expect($ids)->toContain($ownSubmitted->id);
 });
 
 test('guest cannot view change requests index', function () {

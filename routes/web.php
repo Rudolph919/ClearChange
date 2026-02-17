@@ -24,7 +24,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('change-requests-pending', [ChangeRequestController::class, 'pendingApproval'])
+        ->name('change-requests.pending-approval');
     Route::resource('change-requests', ChangeRequestController::class)->except(['show']);
+    Route::post('change-requests/{change_request}/submit', [ChangeRequestController::class, 'submit'])
+        ->name('change-requests.submit');
+    Route::post('change-requests/{change_request}/approve', [ChangeRequestController::class, 'approve'])
+        ->name('change-requests.approve');
 });
 
 require __DIR__.'/auth.php';
