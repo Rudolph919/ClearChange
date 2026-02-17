@@ -16,6 +16,10 @@ uses(
     Illuminate\Foundation\Testing\RefreshDatabase::class,
 )->in('Feature');
 
+uses()->beforeEach(function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+})->in('Feature');
+
 uses(
     Tests\TestCase::class,
     Illuminate\Foundation\Testing\RefreshDatabase::class,

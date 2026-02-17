@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\ChangeRequest;
 use App\Models\User;
 
@@ -34,4 +35,18 @@ test('change request factory creates draft by default', function () {
     expect($request->status)->toBe('draft')
         ->and($request->user_id)->not->toBeNull()
         ->and($request->title)->not->toBeEmpty();
+});
+
+test('change request has audit logs relation', function () {
+    $cr = ChangeRequest::factory()->create();
+    AuditLog::create([
+        'user_id' => $cr->user_id,
+        'auditable_type' => ChangeRequest::class,
+        'auditable_id' => $cr->id,
+        'action' => 'created',
+        'new_values' => ['title' => $cr->title],
+    ]);
+
+    expect($cr->auditLogs)->toHaveCount(1)
+        ->and($cr->auditLogs->first()->action)->toBe('created');
 });

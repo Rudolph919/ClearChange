@@ -33,6 +33,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'can' => [
+                    'viewAuditLogs' => $request->user()?->can('view audit logs') ?? false,
+                ],
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
