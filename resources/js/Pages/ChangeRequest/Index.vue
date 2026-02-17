@@ -13,6 +13,12 @@ function deleteChangeRequest(id) {
         router.delete(route('change-requests.destroy', id));
     }
 }
+
+function submitChangeRequest(id) {
+    if (confirm('Submit this change request for approval? You will not be able to edit it after submitting.')) {
+        router.post(route('change-requests.submit', id));
+    }
+}
 </script>
 
 <template>
@@ -21,9 +27,17 @@ function deleteChangeRequest(id) {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                    Change Requests
-                </h2>
+                <div class="flex items-center gap-4">
+                    <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                        Change Requests
+                    </h2>
+                    <Link
+                        :href="route('change-requests.pending-approval')"
+                        class="text-sm text-gray-600 hover:text-gray-900"
+                    >
+                        Pending my approval
+                    </Link>
+                </div>
                 <Link
                     :href="route('change-requests.create')"
                     class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
@@ -47,7 +61,7 @@ function deleteChangeRequest(id) {
                             v-if="changeRequests.length === 0"
                             class="text-center text-gray-500"
                         >
-                            No draft change requests yet.
+                            No change requests yet.
                             <Link
                                 :href="route('change-requests.create')"
                                 class="ml-1 text-indigo-600 hover:text-indigo-500"
@@ -78,6 +92,12 @@ function deleteChangeRequest(id) {
                                         scope="col"
                                         class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                     >
+                                        Status
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                                    >
                                         Created
                                     </th>
                                     <th
@@ -99,23 +119,49 @@ function deleteChangeRequest(id) {
                                     <td class="max-w-xs truncate px-6 py-4 text-sm text-gray-500">
                                         {{ request.description || '—' }}
                                     </td>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm">
+                                        <span
+                                            :class="{
+                                                'rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800': request.status === 'draft',
+                                                'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800': request.status === 'submitted',
+                                                'rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800': request.status === 'approved',
+                                            }"
+                                        >
+                                            {{ request.status }}
+                                        </span>
+                                    </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                                         {{ new Date(request.created_at).toLocaleDateString() }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                        <Link
-                                            :href="route('change-requests.edit', request.id)"
-                                            class="text-indigo-600 hover:text-indigo-900"
-                                        >
-                                            Edit
-                                        </Link>
-                                        <button
-                                            type="button"
-                                            class="ml-4 text-red-600 hover:text-red-900"
-                                            @click="deleteChangeRequest(request.id)"
-                                        >
-                                            Delete
-                                        </button>
+                                        <template v-if="request.status === 'draft'">
+                                            <Link
+                                                :href="route('change-requests.edit', request.id)"
+                                                class="text-indigo-600 hover:text-indigo-900"
+                                            >
+                                                Edit
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                class="ml-4 text-indigo-600 hover:text-indigo-900"
+                                                @click="submitChangeRequest(request.id)"
+                                            >
+                                                Submit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="ml-4 text-red-600 hover:text-red-900"
+                                                @click="deleteChangeRequest(request.id)"
+                                            >
+                                                Delete
+                                            </button>
+                                        </template>
+                                        <template v-else-if="request.status === 'submitted'">
+                                            <span class="text-gray-400">Awaiting approval</span>
+                                        </template>
+                                        <template v-else>
+                                            <span class="text-gray-400">Approved</span>
+                                        </template>
                                     </td>
                                 </tr>
                             </tbody>
