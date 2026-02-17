@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreChangeRequestRequest;
+use App\Http\Requests\UpdateChangeRequestRequest;
 use App\Models\ChangeRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,12 +13,18 @@ use Inertia\Response;
 class ChangeRequestController extends Controller
 {
     /**
-     * Display a listing of the user's change requests.
+     * Display a listing of the user's draft change requests.
      */
     public function index(): Response
     {
+        $changeRequests = ChangeRequest::query()
+            ->where('user_id', auth()->id())
+            ->where('status', ChangeRequest::STATUS_DRAFT)
+            ->latest()
+            ->get();
+
         return Inertia::render('ChangeRequest/Index', [
-            'changeRequests' => [],
+            'changeRequests' => $changeRequests,
         ]);
     }
 
@@ -32,9 +39,16 @@ class ChangeRequestController extends Controller
     /**
      * Store a newly created change request in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreChangeRequestRequest $request): RedirectResponse
     {
-        return Redirect::route('change-requests.index');
+        $request->user()->changeRequests()->create([
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+            'status' => ChangeRequest::STATUS_DRAFT,
+        ]);
+
+        return Redirect::route('change-requests.index')
+            ->with('status', 'Change request created.');
     }
 
     /**
@@ -42,6 +56,8 @@ class ChangeRequestController extends Controller
      */
     public function edit(ChangeRequest $changeRequest): Response
     {
+        $this->authorize('update', $changeRequest);
+
         return Inertia::render('ChangeRequest/Edit', [
             'changeRequest' => $changeRequest,
         ]);
@@ -50,9 +66,17 @@ class ChangeRequestController extends Controller
     /**
      * Update the specified change request in storage.
      */
-    public function update(Request $request, ChangeRequest $changeRequest): RedirectResponse
+    public function update(UpdateChangeRequestRequest $request, ChangeRequest $changeRequest): RedirectResponse
     {
-        return Redirect::route('change-requests.index');
+        $this->authorize('update', $changeRequest);
+
+        $changeRequest->update([
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+        ]);
+
+        return Redirect::route('change-requests.index')
+            ->with('status', 'Change request updated.');
     }
 
     /**
@@ -60,6 +84,11 @@ class ChangeRequestController extends Controller
      */
     public function destroy(ChangeRequest $changeRequest): RedirectResponse
     {
-        return Redirect::route('change-requests.index');
+        $this->authorize('delete', $changeRequest);
+
+        $changeRequest->delete();
+
+        return Redirect::route('change-requests.index')
+            ->with('status', 'Change request deleted.');
     }
 }
