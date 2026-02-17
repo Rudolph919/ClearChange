@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreChangeRequestRequest;
 use App\Http\Requests\UpdateChangeRequestRequest;
 use App\Models\ChangeRequest;
+use App\Models\ChangeRequestItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -23,6 +24,8 @@ class ChangeRequestController extends Controller
                 ChangeRequest::STATUS_DRAFT,
                 ChangeRequest::STATUS_SUBMITTED,
                 ChangeRequest::STATUS_APPROVED,
+                ChangeRequest::STATUS_PROCESSING,
+                ChangeRequest::STATUS_COMPLETED,
             ])
             ->latest()
             ->get();
@@ -63,7 +66,7 @@ class ChangeRequestController extends Controller
     }
 
     /**
-     * Approve a submitted change request (submitted → approved).
+     * Approve a submitted change request (submitted → approved) and process it.
      */
     public function approve(ChangeRequest $changeRequest): RedirectResponse
     {
@@ -71,8 +74,10 @@ class ChangeRequestController extends Controller
 
         $changeRequest->update(['status' => ChangeRequest::STATUS_APPROVED]);
 
+        $this->processChangeRequest($changeRequest);
+
         return Redirect::route('change-requests.pending-approval')
-            ->with('status', 'Change request approved.');
+            ->with('status', 'Change request approved and processed.');
     }
 
     /**
@@ -106,11 +111,16 @@ class ChangeRequestController extends Controller
      */
     public function store(StoreChangeRequestRequest $request): RedirectResponse
     {
-        $request->user()->changeRequests()->create([
-            'title' => $request->validated('title'),
-            'description' => $request->validated('description'),
+        $titleProposed = $request->validated('title_proposed');
+        $descriptionProposed = $request->validated('description_proposed');
+
+        $changeRequest = $request->user()->changeRequests()->create([
+            'title' => $titleProposed ?: ($descriptionProposed ? '(Description change)' : '(Untitled)'),
+            'description' => $descriptionProposed,
             'status' => ChangeRequest::STATUS_DRAFT,
         ]);
+
+        $this->syncItemsFromRequest($changeRequest, $request->validated());
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request created.');
@@ -122,6 +132,8 @@ class ChangeRequestController extends Controller
     public function edit(ChangeRequest $changeRequest): Response
     {
         $this->authorize('update', $changeRequest);
+
+        $changeRequest->load('items');
 
         return Inertia::render('ChangeRequest/Edit', [
             'changeRequest' => $changeRequest,
@@ -135,10 +147,15 @@ class ChangeRequestController extends Controller
     {
         $this->authorize('update', $changeRequest);
 
+        $titleProposed = $request->validated('title_proposed');
+        $descriptionProposed = $request->validated('description_proposed');
+
         $changeRequest->update([
-            'title' => $request->validated('title'),
-            'description' => $request->validated('description'),
+            'title' => $titleProposed ?: ($descriptionProposed ? '(Description change)' : '(Untitled)'),
+            'description' => $descriptionProposed,
         ]);
+
+        $this->syncItemsFromRequest($changeRequest, $request->validated());
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request updated.');
@@ -155,5 +172,74 @@ class ChangeRequestController extends Controller
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request deleted.');
+    }
+
+    /**
+     * Process an approved change request (processing → completed).
+     * Uses items as the payload; creates items from title/description if none exist (legacy CRs).
+     */
+    private function processChangeRequest(ChangeRequest $changeRequest): void
+    {
+        $changeRequest->load('items');
+
+        if ($changeRequest->items->isEmpty()) {
+            $this->ensureItemsFromLegacyFields($changeRequest);
+            $changeRequest->unsetRelation('items')->load('items');
+        }
+
+        $changeRequest->update(['status' => ChangeRequest::STATUS_PROCESSING]);
+
+        foreach ($changeRequest->items as $item) {
+            // Placeholder: in a real system this would apply the change (API call, DB update, etc.)
+            // For now we simply mark each item as "processed" by iterating — the payload is ready for extension
+        }
+
+        $changeRequest->update(['status' => ChangeRequest::STATUS_COMPLETED]);
+    }
+
+    /**
+     * Backfill items from title/description for change requests created before item-based forms.
+     */
+    private function ensureItemsFromLegacyFields(ChangeRequest $changeRequest): void
+    {
+        $items = [];
+        if ($changeRequest->title) {
+            $items[] = ['field_name' => 'title', 'old_value' => null, 'new_value' => $changeRequest->title];
+        }
+        if ($changeRequest->description) {
+            $items[] = ['field_name' => 'description', 'old_value' => null, 'new_value' => $changeRequest->description];
+        }
+        foreach ($items as $item) {
+            $changeRequest->items()->create($item);
+        }
+    }
+
+    /**
+     * Sync change request items from validated form data.
+     */
+    private function syncItemsFromRequest(ChangeRequest $changeRequest, array $validated): void
+    {
+        $changeRequest->items()->delete();
+
+        $items = [];
+
+        if (($proposed = $validated['title_proposed'] ?? '') !== '') {
+            $items[] = [
+                'field_name' => 'title',
+                'old_value' => $validated['title_current'] ?? null,
+                'new_value' => $proposed,
+            ];
+        }
+        if (($proposed = $validated['description_proposed'] ?? '') !== '') {
+            $items[] = [
+                'field_name' => 'description',
+                'old_value' => $validated['description_current'] ?? null,
+                'new_value' => $proposed,
+            ];
+        }
+
+        foreach ($items as $item) {
+            $changeRequest->items()->create($item);
+        }
     }
 }

@@ -14,8 +14,24 @@ class StoreChangeRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            'title_current' => ['nullable', 'string', 'max:255'],
+            'title_proposed' => ['nullable', 'string', 'max:255'],
+            'description_current' => ['nullable', 'string', 'max:5000'],
+            'description_proposed' => ['nullable', 'string', 'max:5000'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $proposed = $this->input('title_proposed') ?? '';
+            $desc = $this->input('description_proposed') ?? '';
+            if (trim($proposed) === '' && trim($desc) === '') {
+                $validator->errors()->add(
+                    'title_proposed',
+                    'At least one proposed value (title or description) is required.'
+                );
+            }
+        });
     }
 }

@@ -12,8 +12,10 @@ test('authenticated user can edit their draft change request', function () {
     ]);
 
     $response = $this->actingAs($user)->put(route('change-requests.update', $cr), [
-        'title' => 'Updated title',
-        'description' => 'Updated description',
+        'title_current' => 'Original title',
+        'title_proposed' => 'Updated title',
+        'description_current' => 'Original description',
+        'description_proposed' => 'Updated description',
     ]);
 
     $response->assertRedirect(route('change-requests.index'));
@@ -22,16 +24,18 @@ test('authenticated user can edit their draft change request', function () {
     expect($cr->description)->toBe('Updated description');
 });
 
-test('validation requires title on update', function () {
+test('validation requires at least one proposed value on update', function () {
     $user = User::factory()->create();
     $cr = ChangeRequest::factory()->create(['user_id' => $user->id]);
 
     $response = $this->actingAs($user)->put(route('change-requests.update', $cr), [
-        'title' => '',
-        'description' => 'Some description',
+        'title_current' => '',
+        'title_proposed' => '',
+        'description_current' => '',
+        'description_proposed' => '',
     ]);
 
-    $response->assertSessionHasErrors('title');
+    $response->assertSessionHasErrors('title_proposed');
 });
 
 test('user cannot edit another users change request', function () {
@@ -40,8 +44,8 @@ test('user cannot edit another users change request', function () {
     $cr = ChangeRequest::factory()->create(['user_id' => $owner->id]);
 
     $response = $this->actingAs($other)->put(route('change-requests.update', $cr), [
-        'title' => 'Hacked title',
-        'description' => 'Hacked description',
+        'title_proposed' => 'Hacked title',
+        'description_proposed' => 'Hacked description',
     ]);
 
     $response->assertForbidden();
@@ -51,8 +55,8 @@ test('guest cannot update a change request', function () {
     $cr = ChangeRequest::factory()->create();
 
     $response = $this->put(route('change-requests.update', $cr), [
-        'title' => 'Test',
-        'description' => 'Test',
+        'title_proposed' => 'Test',
+        'description_proposed' => 'Test',
     ]);
 
     $response->assertRedirect(route('login'));

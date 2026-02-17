@@ -126,6 +126,8 @@ function submitChangeRequest(id) {
                                                 'rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800': request.status === 'draft',
                                                 'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800': request.status === 'submitted',
                                                 'rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800': request.status === 'approved',
+                                                'rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800': request.status === 'processing',
+                                                'rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800': request.status === 'completed',
                                             }"
                                         >
                                             {{ request.status }}
@@ -173,12 +175,20 @@ function submitChangeRequest(id) {
                                                 Awaiting approval
                                             </span>
                                         </template>
+                                        <template v-else-if="request.status === 'approved' || request.status === 'processing'">
+                                            <span
+                                                :class="canViewAudit ? 'ml-4' : ''"
+                                                class="text-gray-400"
+                                            >
+                                                In progress
+                                            </span>
+                                        </template>
                                         <template v-else>
                                             <span
                                                 :class="canViewAudit ? 'ml-4' : ''"
                                                 class="text-gray-400"
                                             >
-                                                Approved
+                                                Completed
                                             </span>
                                         </template>
                                     </td>

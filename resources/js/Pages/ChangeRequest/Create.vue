@@ -7,8 +7,10 @@ import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
-    title: '',
-    description: '',
+    title_current: '',
+    title_proposed: '',
+    description_current: '',
+    description_proposed: '',
 });
 
 const submit = () => {
@@ -43,43 +45,67 @@ const submit = () => {
                     >
                         <div>
                             <InputLabel
-                                for="title"
+                                for="title_current"
                                 value="Title"
                             />
-
-                            <TextInput
-                                id="title"
-                                v-model="form.title"
-                                type="text"
-                                class="mt-1 block w-full"
-                                required
-                                autofocus
-                                placeholder="e.g. Update employee salary"
-                            />
-
+                            <p class="text-sm text-gray-500">
+                                Current value → Proposed value
+                            </p>
+                            <div class="mt-2 flex gap-4">
+                                <TextInput
+                                    id="title_current"
+                                    v-model="form.title_current"
+                                    type="text"
+                                    class="block flex-1"
+                                    placeholder="Current (optional)"
+                                    autofocus
+                                />
+                                <span class="self-center text-gray-400">→</span>
+                                <TextInput
+                                    id="title_proposed"
+                                    v-model="form.title_proposed"
+                                    type="text"
+                                    class="block flex-1"
+                                    placeholder="Proposed"
+                                />
+                            </div>
                             <InputError
                                 class="mt-2"
-                                :message="form.errors.title"
+                                :message="form.errors.title_proposed"
                             />
                         </div>
 
                         <div class="mt-4">
                             <InputLabel
-                                for="description"
-                                value="Description (optional)"
+                                for="description_current"
+                                value="Description"
                             />
-
-                            <textarea
-                                id="description"
-                                v-model="form.description"
-                                rows="4"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="Describe the change you are requesting..."
-                            />
-
+                            <p class="text-sm text-gray-500">
+                                Current value → Proposed value
+                            </p>
+                            <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:gap-4">
+                                <textarea
+                                    id="description_current"
+                                    v-model="form.description_current"
+                                    rows="3"
+                                    class="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Current (optional)"
+                                />
+                                <span class="hidden self-center text-gray-400 sm:inline">→</span>
+                                <textarea
+                                    id="description_proposed"
+                                    v-model="form.description_proposed"
+                                    rows="3"
+                                    class="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Proposed (optional)"
+                                />
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">
+                                At least one proposed value is required
+                            </p>
                             <InputError
                                 class="mt-2"
-                                :message="form.errors.description"
+                                :message="form.errors.description_proposed"
                             />
                         </div>
 
