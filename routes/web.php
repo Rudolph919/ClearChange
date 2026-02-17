@@ -27,6 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('change-requests-pending', [ChangeRequestController::class, 'pendingApproval'])
         ->name('change-requests.pending-approval');
     Route::resource('change-requests', ChangeRequestController::class)->except(['show']);
+    Route::get('change-requests/{change_request}/audit', [ChangeRequestController::class, 'audit'])
+        ->name('change-requests.audit');
     Route::post('change-requests/{change_request}/submit', [ChangeRequestController::class, 'submit'])
         ->name('change-requests.submit');
     Route::post('change-requests/{change_request}/approve', [ChangeRequestController::class, 'approve'])

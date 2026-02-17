@@ -7,6 +7,7 @@ defineProps({
 });
 
 const status = usePage().props.flash?.status;
+const canViewAudit = usePage().props.auth?.can?.viewAuditLogs ?? false;
 
 function deleteChangeRequest(id) {
     if (confirm('Are you sure you want to delete this change request?')) {
@@ -134,9 +135,17 @@ function submitChangeRequest(id) {
                                         {{ new Date(request.created_at).toLocaleDateString() }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                                        <Link
+                                            v-if="canViewAudit"
+                                            :href="route('change-requests.audit', request.id)"
+                                            class="text-gray-600 hover:text-gray-900"
+                                        >
+                                            Audit
+                                        </Link>
                                         <template v-if="request.status === 'draft'">
                                             <Link
                                                 :href="route('change-requests.edit', request.id)"
+                                                :class="canViewAudit ? 'ml-4' : ''"
                                                 class="text-indigo-600 hover:text-indigo-900"
                                             >
                                                 Edit
@@ -157,10 +166,20 @@ function submitChangeRequest(id) {
                                             </button>
                                         </template>
                                         <template v-else-if="request.status === 'submitted'">
-                                            <span class="text-gray-400">Awaiting approval</span>
+                                            <span
+                                                :class="canViewAudit ? 'ml-4' : ''"
+                                                class="text-gray-400"
+                                            >
+                                                Awaiting approval
+                                            </span>
                                         </template>
                                         <template v-else>
-                                            <span class="text-gray-400">Approved</span>
+                                            <span
+                                                :class="canViewAudit ? 'ml-4' : ''"
+                                                class="text-gray-400"
+                                            >
+                                                Approved
+                                            </span>
                                         </template>
                                     </td>
                                 </tr>

@@ -7,6 +7,7 @@ defineProps({
 });
 
 const status = usePage().props.flash?.status;
+const canViewAudit = usePage().props.auth?.can?.viewAuditLogs ?? false;
 
 function approveChangeRequest(id) {
     if (confirm('Approve this change request?')) {
@@ -106,8 +107,16 @@ function approveChangeRequest(id) {
                                         {{ new Date(request.updated_at).toLocaleDateString() }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                                        <Link
+                                            v-if="canViewAudit"
+                                            :href="route('change-requests.audit', request.id)"
+                                            class="text-gray-600 hover:text-gray-900"
+                                        >
+                                            Audit
+                                        </Link>
                                         <button
                                             type="button"
+                                            :class="canViewAudit ? 'ml-4' : ''"
                                             class="text-green-600 hover:text-green-900"
                                             @click="approveChangeRequest(request.id)"
                                         >

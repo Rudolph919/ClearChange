@@ -42,4 +42,13 @@ class ChangeRequestPolicy
         return $changeRequest->user_id !== $user->id
             && $changeRequest->status === ChangeRequest::STATUS_SUBMITTED;
     }
+
+    /**
+     * Determine whether the user can view the audit log for the change request.
+     */
+    public function viewAudit(User $user, ChangeRequest $changeRequest): bool
+    {
+        return $changeRequest->user_id === $user->id
+            || $user->can('view audit logs');
+    }
 }

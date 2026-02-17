@@ -76,6 +76,24 @@ class ChangeRequestController extends Controller
     }
 
     /**
+     * Display the audit log for a change request.
+     */
+    public function audit(ChangeRequest $changeRequest): Response
+    {
+        $this->authorize('viewAudit', $changeRequest);
+
+        $auditLogs = $changeRequest->auditLogs()
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return Inertia::render('ChangeRequest/Audit', [
+            'changeRequest' => $changeRequest,
+            'auditLogs' => $auditLogs,
+        ]);
+    }
+
+    /**
      * Show the form for creating a new change request.
      */
     public function create(): Response
