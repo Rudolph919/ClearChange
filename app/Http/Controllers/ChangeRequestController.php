@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessChangeRequestJob;
 use App\Http\Requests\StoreChangeRequestRequest;
 use App\Http\Requests\UpdateChangeRequestRequest;
 use App\Models\ChangeRequest;
-use App\Models\ChangeRequestItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -26,6 +26,7 @@ class ChangeRequestController extends Controller
                 ChangeRequest::STATUS_APPROVED,
                 ChangeRequest::STATUS_PROCESSING,
                 ChangeRequest::STATUS_COMPLETED,
+                ChangeRequest::STATUS_FAILED,
             ])
             ->latest()
             ->get();
@@ -66,7 +67,7 @@ class ChangeRequestController extends Controller
     }
 
     /**
-     * Approve a submitted change request (submitted → approved) and process it.
+     * Approve a submitted change request (submitted → approved) and dispatch processing job.
      */
     public function approve(ChangeRequest $changeRequest): RedirectResponse
     {
@@ -74,10 +75,28 @@ class ChangeRequestController extends Controller
 
         $changeRequest->update(['status' => ChangeRequest::STATUS_APPROVED]);
 
-        $this->processChangeRequest($changeRequest);
+        ProcessChangeRequestJob::dispatch($changeRequest);
 
         return Redirect::route('change-requests.pending-approval')
-            ->with('status', 'Change request approved and processed.');
+            ->with('status', 'Change request approved. Processing in background.');
+    }
+
+    /**
+     * Retry processing a failed change request.
+     */
+    public function retry(ChangeRequest $changeRequest): RedirectResponse
+    {
+        $this->authorize('retry', $changeRequest);
+
+        $changeRequest->update([
+            'status' => ChangeRequest::STATUS_APPROVED,
+            'failure_message' => null,
+        ]);
+
+        ProcessChangeRequestJob::dispatch($changeRequest);
+
+        return Redirect::route('change-requests.index')
+            ->with('status', 'Change request queued for retry.');
     }
 
     /**
@@ -172,46 +191,6 @@ class ChangeRequestController extends Controller
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request deleted.');
-    }
-
-    /**
-     * Process an approved change request (processing → completed).
-     * Uses items as the payload; creates items from title/description if none exist (legacy CRs).
-     */
-    private function processChangeRequest(ChangeRequest $changeRequest): void
-    {
-        $changeRequest->load('items');
-
-        if ($changeRequest->items->isEmpty()) {
-            $this->ensureItemsFromLegacyFields($changeRequest);
-            $changeRequest->unsetRelation('items')->load('items');
-        }
-
-        $changeRequest->update(['status' => ChangeRequest::STATUS_PROCESSING]);
-
-        foreach ($changeRequest->items as $item) {
-            // Placeholder: in a real system this would apply the change (API call, DB update, etc.)
-            // For now we simply mark each item as "processed" by iterating — the payload is ready for extension
-        }
-
-        $changeRequest->update(['status' => ChangeRequest::STATUS_COMPLETED]);
-    }
-
-    /**
-     * Backfill items from title/description for change requests created before item-based forms.
-     */
-    private function ensureItemsFromLegacyFields(ChangeRequest $changeRequest): void
-    {
-        $items = [];
-        if ($changeRequest->title) {
-            $items[] = ['field_name' => 'title', 'old_value' => null, 'new_value' => $changeRequest->title];
-        }
-        if ($changeRequest->description) {
-            $items[] = ['field_name' => 'description', 'old_value' => null, 'new_value' => $changeRequest->description];
-        }
-        foreach ($items as $item) {
-            $changeRequest->items()->create($item);
-        }
     }
 
     /**
