@@ -61,12 +61,13 @@ This application models those requirements in a simple, readable way without ove
 - Status changes and field updates (title, description, status) are recorded automatically
 - **Audit trail page:** Each change request has an Audit button (visible to owners and users with `view audit logs`)
 - Timeline shows who made changes, when, and what changed (old → new values for updates)
+- Job-run transitions (approved → processing → completed, or → failed) are attributed to **System**
 
 ---
 
 ## Workflow (Implemented)
 
-1. **Create** — User creates a draft with current → proposed field changes (stored as ChangeRequestItems)
+1. **Create** — User creates a draft with title and description (stored as ChangeRequestItems). Edit uses Current → Proposed for revisions.
 2. **Submit** — Owner submits for approval (draft → submitted)
 3. **Approve** — Another user approves (submitted → approved) via "Pending my approval"
 4. **Process** — Approved requests are processed asynchronously via queue job (approved → processing → completed)
@@ -77,7 +78,8 @@ This application models those requirements in a simple, readable way without ove
 
 ## Architecture Overview
 
-- Changes are captured as immutable change request items
+- Changes are captured as immutable change request items (field_name, old_value, new_value)
+- The processing job uses items as the payload when applying changes
 - Status transitions are explicitly controlled and validated
 - Processing occurs asynchronously to prevent partial failures
 - All meaningful actions are recorded in an audit log
@@ -141,6 +143,18 @@ Or with Docker/Podman:
 podman compose exec clearchange_app php artisan db:seed
 ```
 
+For a **clean run** (drop all tables, re-migrate, then seed):
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+Or with Docker/Podman:
+
+```bash
+podman compose exec clearchange_app php artisan migrate:fresh --seed
+```
+
 Assign roles to existing users if needed (e.g. via tinker: `User::find(1)->assignRole('admin')`).
 
 ---
@@ -160,7 +174,34 @@ Change requests seeded:
 1. **Draft** — Alice's "Update product pricing" (edit and submit)
 2. **Submitted** — Alice's "Rename Marketing department" (log in as Bob to approve)
 3. **Completed** — Alice's "Extend API rate limit" (full workflow)
-4. **Failed** — Carol's "Sync payroll data" (Retry button)
+4. **Failed** — Carol's "Sync payroll data" (Retry button; failure message shown under status)
+
+---
+
+## Queue (Async Processing)
+
+With `QUEUE_CONNECTION=database` in `.env`, approved requests are queued for background processing. A queue worker must be running:
+
+```bash
+php artisan queue:work
+```
+
+Or with Docker/Podman: `podman compose --profile with-queue up -d`. Tests use `sync` by default, so jobs run immediately without a worker.
+
+---
+
+## Extending the Processing Job
+
+`ProcessChangeRequestJob` iterates over `ChangeRequestItem` records. To add real processing logic (API calls, DB updates, etc.), extend the `handle()` method's loop:
+
+```php
+foreach ($this->changeRequest->items as $item) {
+    // $item->field_name, $item->old_value, $item->new_value
+    // e.g. sync to external system, update a target record, etc.
+}
+```
+
+The payload structure (field_name, old_value, new_value) is ready for integration.
 
 ---
 
