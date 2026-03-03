@@ -15,11 +15,16 @@ function getValuesFromItems() {
     const titleItem = items.find((i) => i.field_name === 'title');
     const descItem = items.find((i) => i.field_name === 'description');
 
+    const proposedTitle = titleItem?.new_value ?? props.changeRequest.title ?? '';
+    const proposedDesc = descItem?.new_value ?? props.changeRequest.description ?? '';
+
+    // Current = what we're changing from (old_value). For new CRs with no old_value, show the
+    // existing proposal as "current" so the user sees their draft content; Proposed = where to revise.
     return {
-        title_current: titleItem?.old_value ?? '',
-        title_proposed: titleItem?.new_value ?? props.changeRequest.title ?? '',
-        description_current: descItem?.old_value ?? '',
-        description_proposed: descItem?.new_value ?? props.changeRequest.description ?? '',
+        title_current: titleItem?.old_value ?? proposedTitle,
+        title_proposed: proposedTitle,
+        description_current: descItem?.old_value ?? proposedDesc,
+        description_proposed: proposedDesc,
     };
 }
 
@@ -61,7 +66,7 @@ const submit = () => {
                                 value="Title"
                             />
                             <p class="text-sm text-gray-500">
-                                Current value → Proposed value
+                                Current (what exists) → Proposed (what you want)
                             </p>
                             <div class="mt-2 flex gap-4">
                                 <TextInput
@@ -69,7 +74,7 @@ const submit = () => {
                                     v-model="form.title_current"
                                     type="text"
                                     class="block flex-1"
-                                    placeholder="Current (optional)"
+                                    placeholder="Current value (optional)"
                                     autofocus
                                 />
                                 <span class="self-center text-gray-400">→</span>
@@ -78,7 +83,7 @@ const submit = () => {
                                     v-model="form.title_proposed"
                                     type="text"
                                     class="block flex-1"
-                                    placeholder="Proposed"
+                                    placeholder="Proposed value"
                                 />
                             </div>
                             <InputError
@@ -93,7 +98,7 @@ const submit = () => {
                                 value="Description"
                             />
                             <p class="text-sm text-gray-500">
-                                Current value → Proposed value
+                                Current (what exists) → Proposed (what you want)
                             </p>
                             <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:gap-4">
                                 <textarea
