@@ -33,6 +33,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('change-requests.submit');
     Route::post('change-requests/{change_request}/approve', [ChangeRequestController::class, 'approve'])
         ->name('change-requests.approve');
+    Route::post('change-requests/{change_request}/retry', [ChangeRequestController::class, 'retry'])
+        ->name('change-requests.retry');
 });
 
 require __DIR__.'/auth.php';

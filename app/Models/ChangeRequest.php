@@ -34,6 +34,7 @@ class ChangeRequest extends Model
         'status',
         'title',
         'description',
+        'failure_message',
     ];
 
     /**

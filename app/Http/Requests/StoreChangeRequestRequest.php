@@ -14,8 +14,8 @@ class StoreChangeRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            'title_proposed' => ['required', 'string', 'max:255'],
+            'description_proposed' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

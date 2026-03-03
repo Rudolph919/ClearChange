@@ -8,8 +8,8 @@ test('creating a change request logs audit entry', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('change-requests.store'), [
-        'title' => 'Test change',
-        'description' => 'Test description',
+        'title_proposed' => 'Test change',
+        'description_proposed' => 'Test description',
     ]);
 
     $cr = ChangeRequest::query()->where('title', 'Test change')->first();
@@ -39,8 +39,10 @@ test('updating a change request logs audit entry with old and new values', funct
     ]);
 
     $this->actingAs($user)->put(route('change-requests.update', $cr), [
-        'title' => 'Updated title',
-        'description' => 'Updated description',
+        'title_current' => 'Original title',
+        'title_proposed' => 'Updated title',
+        'description_current' => 'Original description',
+        'description_proposed' => 'Updated description',
     ]);
 
     $log = AuditLog::query()

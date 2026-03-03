@@ -7,8 +7,8 @@ import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
-    title: '',
-    description: '',
+    title_proposed: '',
+    description_proposed: '',
 });
 
 const submit = () => {
@@ -41,45 +41,45 @@ const submit = () => {
                         class="p-6"
                         @submit.prevent="submit"
                     >
+                        <p class="mb-4 text-sm text-gray-600">
+                            Enter the changes you want to propose. For new requests, these are the values you're requesting.
+                        </p>
+
                         <div>
                             <InputLabel
-                                for="title"
+                                for="title_proposed"
                                 value="Title"
                             />
-
                             <TextInput
-                                id="title"
-                                v-model="form.title"
+                                id="title_proposed"
+                                v-model="form.title_proposed"
                                 type="text"
                                 class="mt-1 block w-full"
                                 required
                                 autofocus
                                 placeholder="e.g. Update employee salary"
                             />
-
                             <InputError
                                 class="mt-2"
-                                :message="form.errors.title"
+                                :message="form.errors.title_proposed"
                             />
                         </div>
 
                         <div class="mt-4">
                             <InputLabel
-                                for="description"
+                                for="description_proposed"
                                 value="Description (optional)"
                             />
-
                             <textarea
-                                id="description"
-                                v-model="form.description"
+                                id="description_proposed"
+                                v-model="form.description_proposed"
                                 rows="4"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 placeholder="Describe the change you are requesting..."
                             />
-
                             <InputError
                                 class="mt-2"
-                                :message="form.errors.description"
+                                :message="form.errors.description_proposed"
                             />
                         </div>
 

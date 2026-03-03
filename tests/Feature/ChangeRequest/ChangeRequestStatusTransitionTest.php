@@ -50,7 +50,7 @@ test('another user can approve a submitted change request', function () {
 
     $response->assertRedirect(route('change-requests.pending-approval'));
     $cr->refresh();
-    expect($cr->status)->toBe(ChangeRequest::STATUS_APPROVED);
+    expect($cr->status)->toBe(ChangeRequest::STATUS_COMPLETED);
 });
 
 test('owner cannot approve their own change request', function () {

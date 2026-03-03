@@ -51,4 +51,13 @@ class ChangeRequestPolicy
         return $changeRequest->user_id === $user->id
             || $user->can('view audit logs');
     }
+
+    /**
+     * Determine whether the user can retry a failed change request.
+     */
+    public function retry(User $user, ChangeRequest $changeRequest): bool
+    {
+        return $changeRequest->user_id === $user->id
+            && $changeRequest->status === ChangeRequest::STATUS_FAILED;
+    }
 }

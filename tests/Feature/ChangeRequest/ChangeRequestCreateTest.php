@@ -1,13 +1,14 @@
 <?php
 
+use App\Models\ChangeRequest;
 use App\Models\User;
 
 test('authenticated user can create a change request', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('change-requests.store'), [
-        'title' => 'Update employee salary',
-        'description' => 'Increase base salary by 5%',
+        'title_proposed' => 'Update employee salary',
+        'description_proposed' => 'Increase base salary by 5%',
     ]);
 
     $response->assertRedirect(route('change-requests.index'));
@@ -17,23 +18,31 @@ test('authenticated user can create a change request', function () {
         'description' => 'Increase base salary by 5%',
         'status' => 'draft',
     ]);
+
+    $cr = ChangeRequest::query()
+        ->where('user_id', $user->id)
+        ->latest()
+        ->with('items')
+        ->first();
+    expect($cr->items)->toHaveCount(2);
+    expect($cr->items->pluck('field_name')->toArray())->toContain('title', 'description');
 });
 
 test('validation requires title', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('change-requests.store'), [
-        'title' => '',
-        'description' => 'Some description',
+        'title_proposed' => '',
+        'description_proposed' => '',
     ]);
 
-    $response->assertSessionHasErrors('title');
+    $response->assertSessionHasErrors('title_proposed');
 });
 
 test('guest cannot create a change request', function () {
     $response = $this->post(route('change-requests.store'), [
-        'title' => 'Test',
-        'description' => 'Test',
+        'title_proposed' => 'Test',
+        'description_proposed' => 'Test',
     ]);
 
     $response->assertRedirect(route('login'));

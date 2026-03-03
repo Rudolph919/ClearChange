@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessChangeRequestJob;
 use App\Http\Requests\StoreChangeRequestRequest;
 use App\Http\Requests\UpdateChangeRequestRequest;
 use App\Models\ChangeRequest;
@@ -23,6 +24,9 @@ class ChangeRequestController extends Controller
                 ChangeRequest::STATUS_DRAFT,
                 ChangeRequest::STATUS_SUBMITTED,
                 ChangeRequest::STATUS_APPROVED,
+                ChangeRequest::STATUS_PROCESSING,
+                ChangeRequest::STATUS_COMPLETED,
+                ChangeRequest::STATUS_FAILED,
             ])
             ->latest()
             ->get();
@@ -63,7 +67,7 @@ class ChangeRequestController extends Controller
     }
 
     /**
-     * Approve a submitted change request (submitted → approved).
+     * Approve a submitted change request (submitted → approved) and dispatch processing job.
      */
     public function approve(ChangeRequest $changeRequest): RedirectResponse
     {
@@ -71,8 +75,28 @@ class ChangeRequestController extends Controller
 
         $changeRequest->update(['status' => ChangeRequest::STATUS_APPROVED]);
 
+        ProcessChangeRequestJob::dispatch($changeRequest);
+
         return Redirect::route('change-requests.pending-approval')
-            ->with('status', 'Change request approved.');
+            ->with('status', 'Change request approved. Processing in background.');
+    }
+
+    /**
+     * Retry processing a failed change request.
+     */
+    public function retry(ChangeRequest $changeRequest): RedirectResponse
+    {
+        $this->authorize('retry', $changeRequest);
+
+        $changeRequest->update([
+            'status' => ChangeRequest::STATUS_APPROVED,
+            'failure_message' => null,
+        ]);
+
+        ProcessChangeRequestJob::dispatch($changeRequest);
+
+        return Redirect::route('change-requests.index')
+            ->with('status', 'Change request queued for retry.');
     }
 
     /**
@@ -106,11 +130,16 @@ class ChangeRequestController extends Controller
      */
     public function store(StoreChangeRequestRequest $request): RedirectResponse
     {
-        $request->user()->changeRequests()->create([
-            'title' => $request->validated('title'),
-            'description' => $request->validated('description'),
+        $titleProposed = $request->validated('title_proposed');
+        $descriptionProposed = $request->validated('description_proposed');
+
+        $changeRequest = $request->user()->changeRequests()->create([
+            'title' => $titleProposed ?: ($descriptionProposed ? '(Description change)' : '(Untitled)'),
+            'description' => $descriptionProposed,
             'status' => ChangeRequest::STATUS_DRAFT,
         ]);
+
+        $this->syncItemsFromRequest($changeRequest, $request->validated());
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request created.');
@@ -122,6 +151,8 @@ class ChangeRequestController extends Controller
     public function edit(ChangeRequest $changeRequest): Response
     {
         $this->authorize('update', $changeRequest);
+
+        $changeRequest->load('items');
 
         return Inertia::render('ChangeRequest/Edit', [
             'changeRequest' => $changeRequest,
@@ -135,10 +166,15 @@ class ChangeRequestController extends Controller
     {
         $this->authorize('update', $changeRequest);
 
+        $titleProposed = $request->validated('title_proposed');
+        $descriptionProposed = $request->validated('description_proposed');
+
         $changeRequest->update([
-            'title' => $request->validated('title'),
-            'description' => $request->validated('description'),
+            'title' => $titleProposed ?: ($descriptionProposed ? '(Description change)' : '(Untitled)'),
+            'description' => $descriptionProposed,
         ]);
+
+        $this->syncItemsFromRequest($changeRequest, $request->validated());
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request updated.');
@@ -155,5 +191,34 @@ class ChangeRequestController extends Controller
 
         return Redirect::route('change-requests.index')
             ->with('status', 'Change request deleted.');
+    }
+
+    /**
+     * Sync change request items from validated form data.
+     */
+    private function syncItemsFromRequest(ChangeRequest $changeRequest, array $validated): void
+    {
+        $changeRequest->items()->delete();
+
+        $items = [];
+
+        if (($proposed = $validated['title_proposed'] ?? '') !== '') {
+            $items[] = [
+                'field_name' => 'title',
+                'old_value' => $validated['title_current'] ?? null,
+                'new_value' => $proposed,
+            ];
+        }
+        if (($proposed = $validated['description_proposed'] ?? '') !== '') {
+            $items[] = [
+                'field_name' => 'description',
+                'old_value' => $validated['description_current'] ?? null,
+                'new_value' => $proposed,
+            ];
+        }
+
+        foreach ($items as $item) {
+            $changeRequest->items()->create($item);
+        }
     }
 }
