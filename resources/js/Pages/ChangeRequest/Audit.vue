@@ -81,7 +81,7 @@ defineProps({
                                         <div class="space-y-1.5">
                                             <div>
                                                 <span class="font-medium text-gray-600">User: </span>
-                                                <span class="text-gray-900">{{ log.user?.name ?? 'Unknown' }}</span>
+                                                <span class="text-gray-900">{{ log.user?.name ?? 'System' }}</span>
                                                 <span class="text-xs text-gray-500"> @ {{ new Date(log.created_at).toLocaleString() }}</span>
                                             </div>
                                             <template v-if="log.action === 'updated' && log.new_values">

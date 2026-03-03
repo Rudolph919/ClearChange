@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\AuditLog;
 use App\Models\ChangeRequest;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -37,17 +39,19 @@ class ProcessChangeRequestJob implements ShouldQueue
             $this->changeRequest->unsetRelation('items')->load('items');
         }
 
-        $this->changeRequest->update(['status' => ChangeRequest::STATUS_PROCESSING]);
+        Model::withoutEvents(fn () => $this->changeRequest->update(['status' => ChangeRequest::STATUS_PROCESSING]));
+        $this->auditStatusChange(ChangeRequest::STATUS_APPROVED, ChangeRequest::STATUS_PROCESSING);
 
         foreach ($this->changeRequest->items as $item) {
             // Placeholder: in a real system this would apply the change (API call, DB update, etc.)
             // The payload (field_name, old_value, new_value) is ready for extension
         }
 
-        $this->changeRequest->update([
+        Model::withoutEvents(fn () => $this->changeRequest->update([
             'status' => ChangeRequest::STATUS_COMPLETED,
             'failure_message' => null,
-        ]);
+        ]));
+        $this->auditStatusChange(ChangeRequest::STATUS_PROCESSING, ChangeRequest::STATUS_COMPLETED);
     }
 
     /**
@@ -55,9 +59,28 @@ class ProcessChangeRequestJob implements ShouldQueue
      */
     public function failed(?Throwable $exception): void
     {
-        $this->changeRequest->update([
+        $previousStatus = $this->changeRequest->status ?: ChangeRequest::STATUS_APPROVED;
+
+        Model::withoutEvents(fn () => $this->changeRequest->update([
             'status' => ChangeRequest::STATUS_FAILED,
             'failure_message' => $exception?->getMessage(),
+        ]));
+
+        $this->auditStatusChange($previousStatus, ChangeRequest::STATUS_FAILED);
+    }
+
+    /**
+     * Create an audit log entry for status transitions made by the background job.
+     */
+    private function auditStatusChange(string $from, string $to): void
+    {
+        AuditLog::create([
+            'user_id' => null,
+            'auditable_type' => ChangeRequest::class,
+            'auditable_id' => $this->changeRequest->id,
+            'action' => 'updated',
+            'old_values' => ['status' => $from],
+            'new_values' => ['status' => $to],
         ]);
     }
 

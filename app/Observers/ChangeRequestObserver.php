@@ -26,15 +26,18 @@ class ChangeRequestObserver
     }
 
     /**
-     * Handle the ChangeRequest "updated" event.
+     * Handle the ChangeRequest "updating" event (before save).
+     * Use "updating" rather than "updated" because by the time "updated" fires,
+     * Laravel has synced the model and getOriginal()/wasChanged() no longer
+     * reflect the previous state. In "updating", the old values are still available.
      */
-    public function updated(ChangeRequest $changeRequest): void
+    public function updating(ChangeRequest $changeRequest): void
     {
         $oldValues = [];
         $newValues = [];
 
         foreach (self::TRACKED_ATTRIBUTES as $key) {
-            if ($changeRequest->wasChanged($key)) {
+            if ($changeRequest->isDirty($key)) {
                 $oldValues[$key] = $changeRequest->getOriginal($key);
                 $newValues[$key] = $changeRequest->getAttribute($key);
             }
