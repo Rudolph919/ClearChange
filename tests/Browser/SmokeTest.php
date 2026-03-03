@@ -13,7 +13,7 @@
 test('homepage loads without smoke', function () {
     $page = visit('/');
 
-    $page->assertSee('Laravel');
+    $page->assertSee('ClearChange');
     $page->assertNoSmoke();
 });
 
