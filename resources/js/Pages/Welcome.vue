@@ -16,9 +16,12 @@ defineProps({
     <div class="min-h-screen bg-slate-50">
         <div class="mx-auto max-w-4xl px-6 py-16 sm:py-24">
             <header class="flex items-center justify-between">
-                <span class="text-xl font-semibold tracking-tight text-slate-800">
+                <Link
+                    :href="route('welcome')"
+                    class="text-xl font-semibold tracking-tight text-slate-800 hover:text-slate-600"
+                >
                     ClearChange
-                </span>
+                </Link>
                 <nav v-if="canLogin" class="flex items-center gap-4">
                     <template v-if="$page.props.auth?.user">
                         <Link
@@ -110,6 +113,10 @@ defineProps({
             </main>
 
             <footer class="mt-24 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
+                <Link :href="route('about')" class="text-indigo-600 hover:text-indigo-500">
+                    About
+                </Link>
+                <span class="mx-2">·</span>
                 ClearChange – Laravel 12, Vue 3, Inertia, Tailwind
             </footer>
         </div>
