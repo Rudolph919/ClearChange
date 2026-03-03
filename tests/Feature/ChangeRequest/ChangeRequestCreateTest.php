@@ -7,9 +7,7 @@ test('authenticated user can create a change request', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('change-requests.store'), [
-        'title_current' => '',
         'title_proposed' => 'Update employee salary',
-        'description_current' => '',
         'description_proposed' => 'Increase base salary by 5%',
     ]);
 
@@ -30,13 +28,11 @@ test('authenticated user can create a change request', function () {
     expect($cr->items->pluck('field_name')->toArray())->toContain('title', 'description');
 });
 
-test('validation requires at least one proposed value', function () {
+test('validation requires title', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('change-requests.store'), [
-        'title_current' => '',
         'title_proposed' => '',
-        'description_current' => '',
         'description_proposed' => '',
     ]);
 
