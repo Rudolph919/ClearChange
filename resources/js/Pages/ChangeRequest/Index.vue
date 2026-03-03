@@ -126,19 +126,28 @@ function retryChangeRequest(id) {
                                     <td class="max-w-xs truncate px-6 py-4 text-sm text-gray-500">
                                         {{ request.description || '—' }}
                                     </td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm">
-                                        <span
-                                            :class="{
-                                                'rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800': request.status === 'draft',
-                                                'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800': request.status === 'submitted',
-                                                'rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800': request.status === 'approved',
-                                                'rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800': request.status === 'processing',
-                                                'rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800': request.status === 'completed',
-                                                'rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800': request.status === 'failed',
-                                            }"
-                                        >
-                                            {{ request.status }}
-                                        </span>
+                                    <td class="px-6 py-4 text-sm">
+                                        <div class="flex flex-col gap-1">
+                                            <span
+                                                :class="{
+                                                    'rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800': request.status === 'draft',
+                                                    'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800': request.status === 'submitted',
+                                                    'rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800': request.status === 'approved',
+                                                    'rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800': request.status === 'processing',
+                                                    'rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800': request.status === 'completed',
+                                                    'rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800': request.status === 'failed',
+                                                }"
+                                            >
+                                                {{ request.status }}
+                                            </span>
+                                            <span
+                                                v-if="request.status === 'failed' && request.failure_message"
+                                                class="max-w-xs truncate text-xs text-red-600"
+                                                :title="request.failure_message"
+                                            >
+                                                {{ request.failure_message }}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                                         {{ new Date(request.created_at).toLocaleDateString() }}
