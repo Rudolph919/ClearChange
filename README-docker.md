@@ -24,7 +24,11 @@ podman compose up -d --build
 
 podman compose exec clearchange_app php artisan key:generate
 podman compose exec clearchange_app php artisan migrate --force
+podman compose exec clearchange_app php artisan db:seed
+npm run build
 ```
+
+The seed creates roles (`user`, `admin`) and permissions (`view audit logs`, `approve change requests`). Rebuild frontend assets after pulling changes.
 
 ## Start / stop
 

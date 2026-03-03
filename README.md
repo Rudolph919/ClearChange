@@ -36,11 +36,42 @@ This application models those requirements in a simple, readable way without ove
 
 ## Tech Stack
 
-- Laravel 11/12
+- Laravel 12
 - Vue 3 (Composition API)
 - Inertia.js
+- Tailwind CSS
+- Spatie Laravel Permission (roles & permissions)
 - MySQL / PostgreSQL
 - Laravel Queues & Jobs
+
+---
+
+## Roles & Permissions
+
+- **Roles:** `user`, `admin`
+- **Permissions:** `view audit logs`, `approve change requests`
+- New users receive the `user` role on registration
+- The `user` role can view audit logs; the `admin` role can also approve change requests
+- To restrict audit visibility, remove `view audit logs` from `user` and assign it only to `admin` or a dedicated auditor role
+
+---
+
+## Audit Log
+
+- Status changes and field updates (title, description, status) are recorded automatically
+- **Audit trail page:** Each change request has an Audit button (visible to owners and users with `view audit logs`)
+- Timeline shows who made changes, when, and what changed (old → new values for updates)
+
+---
+
+## Workflow (Implemented)
+
+1. **Create** — User creates a draft with current → proposed field changes (stored as ChangeRequestItems)
+2. **Submit** — Owner submits for approval (draft → submitted)
+3. **Approve** — Another user approves (submitted → approved) via "Pending my approval"
+4. **Process** — Approved requests are processed asynchronously via queue job (approved → processing → completed)
+5. **Retry** — Failed requests can be retried by the owner via the Retry button
+6. **Audit** — Any user with permission can view the full audit trail for any change request
 
 ---
 
@@ -83,26 +114,53 @@ This structure prioritises clarity and correctness over abstraction.
 
 ## Step-by-Step Build Prompts (Commit-Friendly)
 
-1. **Project Setup** — Create Laravel app with auth and Inertia + Vue 3.  
-   *Commit: `chore: bootstrap laravel with inertia and vue`*
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | **Project Setup** — Create Laravel app with auth and Inertia + Vue 3 | ✅ Done |
+| 2 | **Core Models** — Create ChangeRequest, ChangeRequestItem, AuditLog models | ✅ Done |
+| 3 | **Basic CRUD (Draft Only)** — CRUD for Change Requests in Draft status | ✅ Done |
+| 4 | **Status Transitions** — Draft → Submitted → Approved with validation and policies | ✅ Done |
+| 5 | **Audit Logging** — Automatically log status changes and field updates | ✅ Done |
+| 6 | **Audit Viewing & Permissions** — Spatie roles, Audit button, audit trail page | ✅ Done |
+| 7 | **Background Processing** — Process approved requests asynchronously | ✅ Done |
+| 8 | **Failure Handling & Retry** — Capture failures and allow safe retry | ✅ Done |
 
-2. **Core Models** — Create ChangeRequest, ChangeRequestItem, AuditLog models.  
-   *Commit: `feat: add change request core models`*
+---
 
-3. **Basic CRUD (Draft Only)** — CRUD for Change Requests in Draft status.  
-   *Commit: `feat: draft change request creation`*
+## Setup
 
-4. **Status Transitions** — Draft → Submitted → Approved with validation and policies.  
-   *Commit: `feat: implement change request workflow states`*
+After cloning and running migrations, seed roles and permissions:
 
-5. **Audit Logging** — Automatically log status changes and field updates.  
-   *Commit: `feat: add audit logging for change requests`*
+```bash
+php artisan db:seed
+```
 
-6. **Background Processing** — Process approved requests asynchronously.  
-   *Commit: `feat: async processing for approved requests`*
+Or with Docker/Podman:
 
-7. **Failure Handling & Retry** — Capture failures and allow safe retry.  
-   *Commit: `feat: failure handling and retry mechanism`*
+```bash
+podman compose exec clearchange_app php artisan db:seed
+```
+
+Assign roles to existing users if needed (e.g. via tinker: `User::find(1)->assignRole('admin')`).
+
+---
+
+## Demo Data
+
+The default seeder populates demo users and change requests in every workflow state. Use these credentials (password: `password`) to explore:
+
+| User | Email | Role | What to try |
+|------|-------|------|-------------|
+| **Alice** | alice@example.com | user | Draft (edit, submit), Submitted (awaiting approval), Completed |
+| **Bob** | bob@example.com | admin | Pending my approval (approve Alice's submitted request), view audit logs |
+| **Carol** | carol@example.com | user | Failed request (click Retry to re-queue processing) |
+
+Change requests seeded:
+
+1. **Draft** — Alice's "Update product pricing" (edit and submit)
+2. **Submitted** — Alice's "Rename Marketing department" (log in as Bob to approve)
+3. **Completed** — Alice's "Extend API rate limit" (full workflow)
+4. **Failed** — Carol's "Sync payroll data" (Retry button)
 
 ---
 
