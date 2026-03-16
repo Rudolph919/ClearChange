@@ -18,8 +18,9 @@ defineProps({
             <header class="flex items-center justify-between">
                 <Link
                     :href="route('welcome')"
-                    class="text-xl font-semibold tracking-tight text-slate-800 hover:text-slate-600"
+                    class="flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-800 hover:text-slate-600"
                 >
+                    <img src="/favicon.svg" alt="" class="h-8 w-8" />
                     ClearChange
                 </Link>
                 <nav v-if="canLogin" class="flex items-center gap-4">
